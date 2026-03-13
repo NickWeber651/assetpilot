@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: assetpilot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: assetpilot
+      POSTGRES_USER: assetpilot
+      POSTGRES_PASSWORD: assetpilot123
+    ports:
+      - "5432:5432"
+    volumes:
+      - assetpilot_pgdata:/var/lib/postgresql/data
+
+volumes:
+  assetpilot_pgdata:

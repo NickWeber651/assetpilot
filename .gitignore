@@ -1,0 +1,9 @@
+.idea/
+*.iml
+**/target/
+**/node_modules/
+**/.next/
+.env
+.env.local
+.DS_Store
+Thumbs.db
