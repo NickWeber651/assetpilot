@@ -8,12 +8,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -25,21 +26,19 @@ class AccountControllerMockMvcTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private AccountRepository accountRepository;
+    private AccountService accountService;
 
     @Test
     void updateAccount_whenAccountExists_returnsUpdatedAccount() throws Exception {
-        Account existingAccount = new Account(
-                1L,
-                "Altes Konto",
-                "Alte Bank",
-                AccountType.CASH,
-                "EUR",
-                new BigDecimal("100.00")
-        );
 
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(existingAccount));
-        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountService.updateAccount(any(Long.class), any(Account.class))).thenReturn(new Account(
+                1L,
+                "Neues Konto",
+                "Neue Bank",
+                AccountType.SAVINGS,
+                "USD",
+                new BigDecimal("2500.50")
+        ));
 
         String requestBody = """
                 {
@@ -63,13 +62,16 @@ class AccountControllerMockMvcTest {
                 .andExpect(jsonPath("$.currency").value("USD"))
                 .andExpect(jsonPath("$.currentBalance").value(2500.5));
 
-        verify(accountRepository).findById(1L);
-        verify(accountRepository).save(any(Account.class));
+        verify(accountService).updateAccount(any(Long.class), any(Account.class));
     }
 
     @Test
     void updateAccount_whenAccountDoesNotExist_returnsNotFound() throws Exception {
-        when(accountRepository.findById(999L)).thenReturn(Optional.empty());
+        when(accountService.updateAccount(any(Long.class), any(Account.class)))
+                .thenThrow(new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND,
+                        "Account mit ID 999 wurde nicht gefunden"
+                ));
 
         String requestBody = """
                 {
@@ -86,7 +88,7 @@ class AccountControllerMockMvcTest {
                         .content(requestBody))
                 .andExpect(status().isNotFound());
 
-        verify(accountRepository, never()).save(any(Account.class));
+        verify(accountService).updateAccount(any(Long.class), any(Account.class));
     }
 
     @Test
@@ -106,8 +108,7 @@ class AccountControllerMockMvcTest {
                         .content(requestBody))
                 .andExpect(status().isBadRequest());
 
-        verify(accountRepository, never()).findById(any());
-        verify(accountRepository, never()).save(any(Account.class));
+        verify(accountService, never()).updateAccount(any(Long.class), any(Account.class));
     }
 
     @Test
@@ -126,8 +127,7 @@ class AccountControllerMockMvcTest {
                         .content(requestBody))
                 .andExpect(status().isBadRequest());
 
-        verify(accountRepository, never()).findById(any());
-        verify(accountRepository, never()).save(any(Account.class));
+        verify(accountService, never()).updateAccount(any(Long.class), any(Account.class));
     }
 
     @Test
@@ -147,8 +147,7 @@ class AccountControllerMockMvcTest {
                         .content(requestBody))
                 .andExpect(status().isBadRequest());
 
-        verify(accountRepository, never()).findById(any());
-        verify(accountRepository, never()).save(any(Account.class));
+        verify(accountService, never()).updateAccount(any(Long.class), any(Account.class));
     }
 
     @Test
@@ -168,8 +167,28 @@ class AccountControllerMockMvcTest {
                         .content(requestBody))
                 .andExpect(status().isBadRequest());
 
-        verify(accountRepository, never()).findById(any());
-        verify(accountRepository, never()).save(any(Account.class));
+        verify(accountService, never()).updateAccount(any(Long.class), any(Account.class));
+    }
+
+    @Test
+    void deleteAccount_whenAccountExists_returnsNoContent() throws Exception {
+        mockMvc.perform(delete("/api/accounts/{id}", 1L))
+                .andExpect(status().isNoContent());
+
+        verify(accountService).deleteAccount(1L);
+    }
+
+    @Test
+    void deleteAccount_whenAccountDoesNotExist_returnsNotFound() throws Exception {
+        doThrow(new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND,
+                "Account mit ID 999 wurde nicht gefunden"
+        )).when(accountService).deleteAccount(999L);
+
+        mockMvc.perform(delete("/api/accounts/{id}", 999L))
+                .andExpect(status().isNotFound());
+
+        verify(accountService).deleteAccount(999L);
     }
 }
 
