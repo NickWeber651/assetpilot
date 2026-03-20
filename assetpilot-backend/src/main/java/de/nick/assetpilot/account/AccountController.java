@@ -34,4 +34,21 @@ public class AccountController {
     public Account createAccount(@Valid @RequestBody Account account) {
         return accountRepository.save(account);
     }
+
+    @PutMapping("/{id}")
+    public Account updateAccount(@PathVariable Long id, @Valid @RequestBody Account account) {
+        Account existingAccount = accountRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Account mit ID " + id + " wurde nicht gefunden"
+                ));
+
+        existingAccount.setName(account.getName());
+        existingAccount.setProvider(account.getProvider());
+        existingAccount.setType(account.getType());
+        existingAccount.setCurrency(account.getCurrency());
+        existingAccount.setCurrentBalance(account.getCurrentBalance());
+
+        return accountRepository.save(existingAccount);
+    }
 }
