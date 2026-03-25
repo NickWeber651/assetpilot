@@ -171,6 +171,46 @@ class AccountControllerMockMvcTest {
     }
 
     @Test
+    void updateAccount_whenCurrencyIsTooLong_returnsBadRequest() throws Exception {
+        String requestBody = """
+                {
+                  "name": "Konto",
+                  "provider": "Bank",
+                  "type": "CASH",
+                  "currency": "EURO",
+                  "currentBalance": 10.00
+                }
+                """;
+
+        mockMvc.perform(put("/api/accounts/{id}", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest());
+
+        verify(accountService, never()).updateAccount(any(Long.class), any(Account.class));
+    }
+
+    @Test
+    void updateAccount_whenCurrencyIsLowercase_returnsBadRequest() throws Exception {
+        String requestBody = """
+                {
+                  "name": "Konto",
+                  "provider": "Bank",
+                  "type": "CASH",
+                  "currency": "eur",
+                  "currentBalance": 10.00
+                }
+                """;
+
+        mockMvc.perform(put("/api/accounts/{id}", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest());
+
+        verify(accountService, never()).updateAccount(any(Long.class), any(Account.class));
+    }
+
+    @Test
     void deleteAccount_whenAccountExists_returnsNoContent() throws Exception {
         mockMvc.perform(delete("/api/accounts/{id}", 1L))
                 .andExpect(status().isNoContent());
